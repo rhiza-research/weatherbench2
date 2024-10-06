@@ -836,6 +836,8 @@ def _pointwise_quantile_crps(
 class SpatialQuantileCRPS(Metric):
     """Quantile CRPS without spatial averaging."""
 
+    quantile_dim: str = QUANTILE
+
     def compute_chunk(
         self,
         forecast: xr.Dataset,
