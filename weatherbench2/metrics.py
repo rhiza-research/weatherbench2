@@ -833,6 +833,20 @@ def _pointwise_quantile_crps(
 
 
 @dataclasses.dataclass
+class SpatialQuantileCRPS(Metric):
+    """Quantile CRPS without spatial averaging."""
+
+    def compute_chunk(
+        self,
+        forecast: xr.Dataset,
+        truth: xr.Dataset,
+        region: t.Optional[Region] = None,
+    ) -> xr.Dataset:
+        """CRPS, for a time chunk of data."""
+        return _pointwise_quantile_crps(forecast, truth, self.quantile_dim),
+
+
+@dataclasses.dataclass
 class GaussianCRPS(Metric):
     """The analytical formulation of CRPS for a Gaussian."""
 
