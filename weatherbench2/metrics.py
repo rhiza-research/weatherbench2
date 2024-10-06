@@ -29,6 +29,7 @@ from weatherbench2.regions import Region
 import xarray as xr
 
 REALIZATION = "realization"
+QUANTILE = "quantile"
 
 
 def _assert_increasing(x: np.ndarray):
@@ -786,6 +787,51 @@ def _rankdata(x: np.ndarray, axis: int) -> np.ndarray:
     ordered_ranks = np.empty(j.shape, dtype=ordinal_ranks.dtype)
     np.put_along_axis(ordered_ranks, j, ordinal_ranks, axis=-1)
     return np.swapaxes(ordered_ranks, axis, -1)
+
+
+@dataclasses.dataclass
+class QuantileCRPS(Metric):
+    """CRPS based on the Quantile Score approximation, averaged over space and time.
+
+    TODO: add citations and description of method.
+    """
+    quantile_dim: str = QUANTILE
+
+    def compute_chunk(
+        self,
+        forecast: xr.Dataset,
+        truth: xr.Dataset,
+        region: t.Optional[Region] = None,
+    ) -> xr.Dataset:
+        """QuantileCRPS, averaged over space, for a time chunk of data."""
+        return _spatial_average(
+            _pointwise_quantile_crps(forecast, truth, self.quantile_dim),
+            region=region,
+        )
+
+
+def _pointwise_quantile_crps(
+    forecast: xr.Dataset, truth: xr.Dataset, quantile_dim: str
+) -> xr.Dataset:
+    """Returns pointwise CRPS of quantile distribution.
+
+    TODO: add docstring
+
+
+    Args:
+      forecast: A forecast dataset.
+      truth: A ground truth dataset.
+
+    Returns:
+      xr.Dataset: Pointwise calculated crps for a generic quantile distribution.
+    """
+    return abs(truth - forecast).mean(ensemble_dim, skipna=False)
+
+    diff = forecast - truth
+    ind = diff > 0
+    qnt_val = diff[quantile_dim]
+    qnt_score = 2 * (ind - qnt_val) * diff
+    return qnt_score.integrate(coord=quantile_dim)
 
 
 @dataclasses.dataclass
