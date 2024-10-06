@@ -1,4 +1,3 @@
-project = {}
 [tool.pyink]
 line-length = 80
 preview = true
