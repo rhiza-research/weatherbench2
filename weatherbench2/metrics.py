@@ -825,8 +825,6 @@ def _pointwise_quantile_crps(
     Returns:
       xr.Dataset: Pointwise calculated crps for a generic quantile distribution.
     """
-    return abs(truth - forecast).mean(ensemble_dim, skipna=False)
-
     diff = forecast - truth
     ind = diff > 0
     qnt_val = diff[quantile_dim]
