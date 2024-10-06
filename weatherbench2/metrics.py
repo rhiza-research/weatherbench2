@@ -121,10 +121,8 @@ class Metric:
     ) -> xr.Dataset:
         """Evaluate this metric on datasets with full temporal coverages."""
         # Handle common location column renaming
-        rename = False
         if 'lon' in forecast and 'lat' in forecast:
             forecast = forecast.rename({'lon': 'longitude', 'lat': 'latitude'})
-            rename = True
         if 'lon' in truth and 'lat' in truth:
             truth = truth.rename({'lon': 'longitude', 'lat': 'latitude'})
 
@@ -804,9 +802,10 @@ class QuantileCRPS(Metric):
         region: t.Optional[Region] = None,
     ) -> xr.Dataset:
         """QuantileCRPS, averaged over space, for a time chunk of data."""
+        # Skipna false for now, until we have regions implemented
         return _spatial_average(
             _pointwise_quantile_crps(forecast, truth, self.quantile_dim),
-            region=region,
+            region=region, skipna=True
         )
 
 
@@ -844,8 +843,8 @@ class SpatialQuantileCRPS(Metric):
         truth: xr.Dataset,
         region: t.Optional[Region] = None,
     ) -> xr.Dataset:
-        """CRPS, for a time chunk of data."""
-        return _pointwise_quantile_crps(forecast, truth, self.quantile_dim),
+        """Quantile CRPS, for a time chunk of data."""
+        return _pointwise_quantile_crps(forecast, truth, self.quantile_dim)
 
 
 @dataclasses.dataclass
