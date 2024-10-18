@@ -309,7 +309,7 @@ class MAE(Metric):
         truth: xr.Dataset,
         region: t.Optional[Region] = None,
     ) -> xr.Dataset:
-        return _spatial_average(abs(forecast - truth), region=region)
+        return _spatial_average(abs(forecast - truth), region=region, skipna=True)
 
 
 @dataclasses.dataclass
