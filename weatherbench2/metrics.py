@@ -117,6 +117,7 @@ class Metric:
         forecast: xr.Dataset,
         truth: xr.Dataset,
         region: t.Optional[Region] = None,
+        avg_time: bool = True,
         skipna: bool = False,
     ) -> xr.Dataset:
         """Evaluate this metric on datasets with full temporal coverages."""
@@ -126,20 +127,25 @@ class Metric:
         if 'lon' in truth and 'lat' in truth:
             truth = truth.rename({'lon': 'longitude', 'lat': 'latitude'})
 
-        if "time" in forecast.dims:
-            avg_dim = "time"
-        elif "init_time" in forecast.dims:
-            avg_dim = "init_time"
-        else:
-            raise ValueError(
-                f"Forecast has neither valid_time or init_time dimension {
-                    forecast}"
+        if avg_time:
+            # Don't average in time
+            if "time" in forecast.dims:
+                avg_dim = "time"
+            elif "init_time" in forecast.dims:
+                avg_dim = "init_time"
+            else:
+                raise ValueError(
+                    f"Forecast has neither valid_time or init_time dimension {
+                        forecast}"
+                )
+            ds = self.compute_chunk(forecast, truth, region=region).mean(
+                avg_dim,
+                skipna=skipna,
             )
-        ds = self.compute_chunk(forecast, truth, region=region).mean(
-            avg_dim,
-            skipna=skipna,
-        )
-        return ds
+            return ds
+        else:
+            ds = self.compute_chunk(forecast, truth, region=region)
+            return ds
 
 
 def _spatial_average(
