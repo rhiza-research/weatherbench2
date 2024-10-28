@@ -52,11 +52,11 @@ def _cell_area_from_latitude(points: np.ndarray) -> np.ndarray:
     return np.sin(upper) - np.sin(lower)
 
 
-def get_lat_weights(ds: xr.Dataset) -> xr.DataArray:
+def get_lat_weights(ds: xr.Dataset, lat_dim='latitude') -> xr.DataArray:
     """Computes latitude/area weights from latitude coordinate of dataset."""
-    weights = _cell_area_from_latitude(np.deg2rad(ds.latitude.data))
+    weights = _cell_area_from_latitude(np.deg2rad(ds[lat_dim].data))
     weights /= np.mean(weights)
-    weights = ds.latitude.copy(data=weights)
+    weights = ds[lat_dim].copy(data=weights)
     return weights
 
 
@@ -117,7 +117,8 @@ class Metric:
         forecast: xr.Dataset,
         truth: xr.Dataset,
         region: t.Optional[Region] = None,
-        skipna: bool = False,
+        skipna_time: bool = False,
+        skipna_space: bool = False,
     ) -> xr.Dataset:
         """Evaluate this metric on datasets with full temporal coverages."""
         # Handle common location column renaming
@@ -143,7 +144,8 @@ class Metric:
 
 
 def _spatial_average(
-    dataset: xr.Dataset, region: t.Optional[Region] = None, skipna: bool = False
+    dataset: xr.Dataset, region: t.Optional[Region] = None, skipna: bool = False,
+    lat_dim='latitude', lon_dim='longitude'
 ) -> xr.Dataset:
     """Compute spatial average after applying region mask.
 
@@ -155,13 +157,13 @@ def _spatial_average(
     Returns:
       dataset: Spatially averaged metric.
     """
-    weights = get_lat_weights(dataset)
+    weights = get_lat_weights(dataset, lat_dim=lat_dim)
     if region is not None:
         dataset, weights = region.apply(dataset, weights)
         # ignore NaN/Inf values in regions with zero weight
         dataset = dataset.where(weights > 0, 0)
     return dataset.weighted(weights).mean(
-        ["latitude", "longitude"], skipna=skipna
+        [lat_dim, lon_dim], skipna=skipna
     )
 
 
@@ -631,6 +633,8 @@ class CRPS(EnsembleMetric):
         region: t.Optional[Region] = None,
     ) -> xr.Dataset:
         """CRPS, averaged over space, for a time chunk of data."""
+        import pdb
+        pdb.set_trace()
         return CRPSSkill(self.ensemble_dim).compute_chunk(
             forecast, truth, region=region
         ) - 0.5 * CRPSSpread(self.ensemble_dim).compute_chunk(
@@ -651,7 +655,7 @@ class CRPSSpread(EnsembleMetric):
         """CRPSSpread, averaged over space, for a time chunk of data."""
         return _spatial_average(
             _pointwise_crps_spread(forecast, self.ensemble_dim),
-            region=region,
+            region=region, skipna=True
         )
 
 
@@ -668,7 +672,7 @@ class CRPSSkill(EnsembleMetric):
         """CRPSSkill, averaged over space, for a time chunk of data."""
         return _spatial_average(
             _pointwise_crps_skill(forecast, truth, self.ensemble_dim),
-            region=region,
+            region=region, skipna=True
         )
 
 
@@ -750,7 +754,7 @@ def _pointwise_crps_spread(
         2
         * (
             ((2 * rank - n_ensemble - 1) * forecast).mean(
-                ensemble_dim, skipna=False
+                ensemble_dim, skipna=True
             )
         )
         / (n_ensemble - 1)
