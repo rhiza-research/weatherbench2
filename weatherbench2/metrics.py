@@ -307,6 +307,19 @@ class SpatialMSE(Metric):
 
 
 @dataclasses.dataclass
+class SpatialRMSE(Metric):
+    """MSE without spatial averaging."""
+
+    def compute_chunk(
+        self,
+        forecast: xr.Dataset,
+        truth: xr.Dataset,
+        region: t.Optional[Region] = None,
+    ) -> xr.Dataset:
+        return np.sqrt((forecast - truth) ** 2)
+
+
+@dataclasses.dataclass
 class MAE(Metric):
     """Mean absolute error."""
 
