@@ -379,73 +379,18 @@ class ACC(Metric):
       climatology: Climatology for computing anomalies.
     """
 
-    climatology: xr.Dataset
-
     def compute_chunk(
         self,
         forecast: xr.Dataset,
         truth: xr.Dataset,
         region: t.Optional[Region] = None,
     ) -> xr.Dataset:
-        if "init_time" in forecast.dims:
-            time_dim = "valid_time"
-        else:
-            time_dim = "time"
-        # Rename the lat and lon columns
-        if 'lon' in self.climatology and 'lat' in self.climatology:
-            self.climatology = self.climatology.rename(
-                {'lon': 'longitude', 'lat': 'latitude'})
-        climatology_chunk = _get_climatology_chunk(self.climatology, truth)
-        if hasattr(forecast, "level"):
-            climatology_chunk = climatology_chunk.sel(level=forecast.level)
-        time_selection = dict(dayofyear=forecast[time_dim].dt.dayofyear)
-        if "hour" in set(climatology_chunk.coords):
-            time_selection["hour"] = forecast[time_dim].dt.hour
-        climatology_chunk = climatology_chunk.sel(time_selection)
-        forecast_anom = forecast - climatology_chunk
-        truth_anom = truth - climatology_chunk
         return _spatial_average(
-            forecast_anom * truth_anom, region=region, skipna=True
+            forecast * truth, region=region, skipna=True
         ) / np.sqrt(
-            _spatial_average(forecast_anom**2, region=region, skipna=True)
-            * _spatial_average(truth_anom**2, region=region, skipna=True)
+            _spatial_average(forecast**2, region=region, skipna=True)
+            * _spatial_average(truth**2, region=region, skipna=True)
         )
-
-
-@dataclasses.dataclass
-class SpatialACC(Metric):
-    """Spatial anomaly correlation coefficient.
-
-    Attribute:
-      climatology: Climatology for computing anomalies.
-    """
-
-    climatology: xr.Dataset
-
-    def compute_chunk(
-        self,
-        forecast: xr.Dataset,
-        truth: xr.Dataset,
-        region: t.Optional[Region] = None,
-    ) -> xr.Dataset:
-        if "init_time" in forecast.dims:
-            time_dim = "valid_time"
-        else:
-            time_dim = "time"
-        # Rename the lat and lon columns
-        if 'lon' in self.climatology and 'lat' in self.climatology:
-            self.climatology = self.climatology.rename(
-                {'lon': 'longitude', 'lat': 'latitude'})
-        climatology_chunk = _get_climatology_chunk(self.climatology, truth)
-        if hasattr(forecast, "level"):
-            climatology_chunk = climatology_chunk.sel(level=forecast.level)
-        time_selection = dict(dayofyear=forecast[time_dim].dt.dayofyear)
-        if "hour" in set(climatology_chunk.coords):
-            time_selection["hour"] = forecast[time_dim].dt.hour
-        climatology_chunk = climatology_chunk.sel(time_selection)
-        forecast_anom = forecast - climatology_chunk
-        truth_anom = truth - climatology_chunk
-        return forecast_anom * truth_anom / np.sqrt(forecast_anom**2 * truth_anom**2)
 
 
 @dataclasses.dataclass
