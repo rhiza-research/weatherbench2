@@ -284,7 +284,7 @@ class MSE(Metric):
         truth: xr.Dataset,
         region: t.Optional[Region] = None,
     ) -> xr.Dataset:
-        results = _spatial_average((forecast - truth) ** 2, region=region)
+        results = _spatial_average((forecast - truth) ** 2, region=region, skipna=True)
         if self.wind_vector_mse is not None:
             for wv in self.wind_vector_mse:
                 results[wv.vector_name] = wv.compute_chunk(
@@ -304,19 +304,6 @@ class SpatialMSE(Metric):
         region: t.Optional[Region] = None,
     ) -> xr.Dataset:
         return (forecast - truth) ** 2
-
-
-@dataclasses.dataclass
-class SpatialRMSE(Metric):
-    """MSE without spatial averaging."""
-
-    def compute_chunk(
-        self,
-        forecast: xr.Dataset,
-        truth: xr.Dataset,
-        region: t.Optional[Region] = None,
-    ) -> xr.Dataset:
-        return np.sqrt((forecast - truth) ** 2)
 
 
 @dataclasses.dataclass
