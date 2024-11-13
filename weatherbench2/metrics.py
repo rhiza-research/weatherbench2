@@ -128,7 +128,6 @@ class Metric:
             truth = truth.rename({'lon': 'longitude', 'lat': 'latitude'})
 
         if avg_time:
-            # Don't average in time
             if "time" in forecast.dims:
                 avg_dim = "time"
             elif "init_time" in forecast.dims:
@@ -144,6 +143,7 @@ class Metric:
             )
             return ds
         else:
+            # Don't average in time
             ds = self.compute_chunk(forecast, truth, region=region)
             return ds
 
@@ -284,7 +284,8 @@ class MSE(Metric):
         truth: xr.Dataset,
         region: t.Optional[Region] = None,
     ) -> xr.Dataset:
-        results = _spatial_average((forecast - truth) ** 2, region=region, skipna=True)
+        results = _spatial_average(
+            (forecast - truth) ** 2, region=region, skipna=True)
         if self.wind_vector_mse is not None:
             for wv in self.wind_vector_mse:
                 results[wv.vector_name] = wv.compute_chunk(
@@ -378,6 +379,45 @@ class ACC(Metric):
             _spatial_average(forecast**2, region=region, skipna=True)
             * _spatial_average(truth**2, region=region, skipna=True)
         )
+
+
+@dataclasses.dataclass
+class SpatialACC(Metric):
+    """Spatial Anomaly correlation coefficient.
+
+    Attribute:
+      climatology: Climatology for computing anomalies.
+    """
+
+    def compute(
+        self,
+        forecast: xr.Dataset,
+        truth: xr.Dataset,
+        region: t.Optional[Region] = None,
+        skipna: bool = False,
+    ) -> xr.Dataset:
+        """Evaluate this metric on datasets with full temporal coverages."""
+        # Handle common location column renaming
+        if 'lon' in forecast and 'lat' in forecast:
+            forecast = forecast.rename({'lon': 'longitude', 'lat': 'latitude'})
+        if 'lon' in truth and 'lat' in truth:
+            truth = truth.rename({'lon': 'longitude', 'lat': 'latitude'})
+
+        if "time" in forecast.dims:
+            avg_dim = "time"
+        elif "init_time" in forecast.dims:
+            avg_dim = "init_time"
+        else:
+            raise ValueError(
+                f"Forecast has neither valid_time or init_time dimension {
+                    forecast}"
+            )
+
+        fcst_norm = np.sqrt((forecast**2).mean(dim=avg_dim, skipna=skipna))
+        gt_norm = np.sqrt((truth**2).mean(dim=avg_dim, skipna=skipna))
+        dot = (fcst_norm * gt_norm).mean(dim=avg_dim, skipna=skipna)
+        ds = (dot / (fcst_norm * gt_norm))
+        return ds
 
 
 @dataclasses.dataclass
