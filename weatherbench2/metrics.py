@@ -417,7 +417,7 @@ class SpatialACC(Metric):
 
         fcst_norm = np.sqrt((forecast**2).mean(dim=avg_dim, skipna=skipna))
         gt_norm = np.sqrt((truth**2).mean(dim=avg_dim, skipna=skipna))
-        dot = (fcst_norm * gt_norm).mean(dim=avg_dim, skipna=skipna)
+        dot = (forecast * truth).mean(dim=avg_dim, skipna=skipna)
         ds = (dot / (fcst_norm * gt_norm))
         return ds
 
