@@ -394,10 +394,12 @@ class SpatialACC(Metric):
         forecast: xr.Dataset,
         truth: xr.Dataset,
         region: t.Optional[Region] = None,
+        avg_time: bool = True,
         skipna: bool = False,
     ) -> xr.Dataset:
         """Evaluate this metric on datasets with full temporal coverages."""
         # Handle common location column renaming
+        assert avg_time, "SpatialACC requires avg_time=True"
         if 'lon' in forecast and 'lat' in forecast:
             forecast = forecast.rename({'lon': 'longitude', 'lat': 'latitude'})
         if 'lon' in truth and 'lat' in truth:
