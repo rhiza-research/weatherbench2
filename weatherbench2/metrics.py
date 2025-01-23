@@ -448,18 +448,17 @@ class SpatialSEEPS(Metric):
 
     @functools.cached_property
     def p1(self) -> xr.DataArray:
-        dry_fraction = self.climatology[f"{
-            self.precip_name}_seeps_dry_fraction"]
-        return dry_fraction.mean(("hour", "dayofyear")).compute()
+        dry_fraction = self.climatology["dry_fraction"]
+        return dry_fraction.mean("dayofyear").compute()
 
     def _convert_precip_to_seeps_cat(self, ds):
         """Helper function for SEEPS computation. Converts values to categories."""
-        wet_threshold = self.climatology[f"{self.precip_name}_seeps_threshold"]
+        wet_threshold = self.climatology[f"wet_threshold"]
         # Convert to SI units [meters]
-        dry_threshold = self.dry_threshold_mm / 1000.0
+        dry_threshold = self.dry_threshold_mm
         da = ds[self.precip_name]
         wet_threshold_for_valid_time = wet_threshold.sel(
-            dayofyear=da.valid_time.dt.dayofyear, hour=da.valid_time.dt.hour
+            dayofyear=da.time.dt.dayofyear
         ).load()
 
         dry = da < dry_threshold
