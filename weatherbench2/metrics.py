@@ -459,7 +459,7 @@ class SpatialSEEPS(Metric):
         da = ds[self.precip_name]
         wet_threshold_for_valid_time = wet_threshold.sel(
             dayofyear=da.time.dt.dayofyear
-        ).load()
+        )
 
         dry = da < dry_threshold
         light = np.logical_and(
